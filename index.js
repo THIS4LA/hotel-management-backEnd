@@ -6,7 +6,13 @@ const app= express();
 app.use(bodyParser.json());
 
 app.get("/",(req,res)=>{
-    console.log("this is get request");
+    const name = req.body.name;
+    const school = req.body.school;
+    const age = req.body.age;
+
+    res.status(200).json({
+        message: `Welcome, ${name}! You are studying at ${school} when you are ${age} years old`
+    })
 })
 
 app.post("/",(req,res)=>{
