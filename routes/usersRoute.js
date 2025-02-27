@@ -1,12 +1,9 @@
 import express from 'express';
+import {getUsers,postUsers,putUsers,deleteUsers} from '../controllers/userController.js';
 
 const userRouter = express.Router();
 
-userRouter.get('/',(req,res)=>{
-    res.json({
-        message: "get request",
-    })
-});
+userRouter.get('/',getUsers);
 
 userRouter.post('/',(req,res)=>{
     res.status(200).json({
