@@ -1,4 +1,7 @@
+import jwt from 'jsonwebtoken';
 import User from "../models/user.js";
+import dotenv from "dotenv";
+
 export function getUsers(req, res) {
   User.find().then((users) => {
     res.status(200).json({
@@ -47,10 +50,25 @@ export function loginUser(req, res) {
   }).then((user) => {
     if (!user) {
       return res.status(404).json({ message: "Invalid email or password" });
+    } else {
+      const payload = {
+        id: user.id,
+        email: user.email,
+        type: user.type,
+        firstName: user.firstName,
+        lastName: user.lastName
+      };
+      const secret = process.env.SECRET_KEY;
+      const token = jwt.sign(payload, secret, { expiresIn: "14 days" });
+      res
+        .status(200)
+        .json({
+          message: "User authenticated successfully",
+          userId: user._id,
+          token: token,
+        });
+        return
     }
-    res
-      .status(200)
-      .json({ message: "User authenticated successfully", userId: user._id });
   });
 }
 
