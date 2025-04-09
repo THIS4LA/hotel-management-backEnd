@@ -9,16 +9,25 @@ export function getGalleryItems(req, res) {
 }
 
 export function postGalleryItems(req, res) {
-  const galleryItem = req.body;
-  const newGallery = new GalleryItem(galleryItem);
-  newGallery
-    .save()
-    .then(() => {
-      res.status(201).json({ message: "item saved successfully" });
-    })
-    .catch(() => {
-      res.status(400).json({ message: "Failed to save item" });
-    });
+  const user = req.user;
+  if (!user) {
+    return res.status(401).json({ message: "Please Login" });
+  }
+  else if(user.type == "admin") {
+    const galleryItem = req.body;
+    const newGallery = new GalleryItem(galleryItem);
+    newGallery
+      .save()
+      .then(() => {
+        res.status(201).json({ message: "item saved successfully" });
+      })
+      .catch(() => {
+        res.status(400).json({ message: "Failed to save item" });
+      });
+  }
+  else {
+    return res.status(403).json({ message: "Unauthorized" });
+  }
 }
 
 export function putGalleryItems(req, res) {}
