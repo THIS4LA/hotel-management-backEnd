@@ -75,7 +75,7 @@ export async function updateRoom(req, res) {
   try {
     // Fix: Use { _id: roomId } and capture the result
     const result = await Room.findOneAndUpdate(
-      { roomId : roomId }, // Correct query filter
+      { roomId: roomId }, // Correct query filter
       req.body,
       { new: true, runValidators: true } // Added runValidators
     );
@@ -106,5 +106,46 @@ export async function updateRoom(req, res) {
     }
 
     return res.status(500).json({ message: "Failed to update room" });
+  }
+}
+
+export async function deleteRoom(req, res) {
+  const roomId = req.params.id;
+  const user = req.user;
+
+  // 1. Authentication & Authorization
+  if (!user) {
+    return res
+      .status(401)
+      .json({ message: "You must be logged in to delete a room" });
+  }
+  if (user.type !== "admin") {
+    return res
+      .status(403)
+      .json({ message: "You must be an admin to delete a room" });
+  }
+
+  try {
+    // 2. Correct query filter (use _id instead of roomId)
+    const deletedRoom = await Room.findOneAndDelete({ _id: roomId });
+
+    if (!deletedRoom) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    // 3. Success response (avoid sending full document)
+    return res.status(200).json({
+      message: "Room deleted successfully",
+      deletedRoomId: deletedRoom._id, // Only send the ID
+    });
+  } catch (error) {
+    console.error("Room deletion error:", error);
+
+    // 4. Handle specific errors
+    if (error.name === "CastError") {
+      return res.status(400).json({ message: "Invalid room ID format" });
+    }
+
+    return res.status(500).json({ message: "Failed to delete room" });
   }
 }
