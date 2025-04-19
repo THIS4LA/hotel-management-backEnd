@@ -7,8 +7,8 @@ galleryItemRouter.get('/',getGalleryItems);
 
 galleryItemRouter.post('/',postGalleryItems);
 
-galleryItemRouter.put('/',putGalleryItems);
+galleryItemRouter.put('/:name',putGalleryItems);
 
-galleryItemRouter.delete('/',deleteGalleryItems);
+galleryItemRouter.delete('/:name',deleteGalleryItems);
 
 export default galleryItemRouter;
