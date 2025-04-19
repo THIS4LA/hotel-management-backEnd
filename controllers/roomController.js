@@ -1,4 +1,5 @@
 import Room from "../models/room.js";
+import { isAdmin } from "../utils/uservalidation.js";
 
 export async function getAllRooms(req, res) {
   try {
@@ -11,22 +12,8 @@ export async function getAllRooms(req, res) {
 }
 
 export async function postRoom(req, res) {
-  const user = req.user;
-
-  // Early return if user is not authenticated
-  if (!user) {
-    return res.status(401).json({
-      message: "You must be logged in to create a room",
-    });
-  }
-
-  // Early return if user is not an admin
-  if (user.type !== "admin") {
-    // Fixed: "admin" should be a string
-    return res.status(403).json({
-      message: "You must be an admin to create a room",
-    });
-  }
+  const allowed = isAdmin(req, res);
+  if (!allowed) return;
 
   try {
     const newRoom = new Room(req.body);
@@ -56,22 +43,9 @@ export async function postRoom(req, res) {
 }
 
 export async function updateRoom(req, res) {
-  const roomId = req.params.id; // Missing 'const' declaration
-  const user = req.user;
-
-  if (!user) {
-    return res.status(401).json({
-      message: "You must be logged in to update a room",
-    });
-  }
-
-  if (user.type !== "admin") {
-    // Ensure "admin" is a string
-    return res.status(403).json({
-      message: "You must be an admin to update a room",
-    });
-  }
-
+  const roomId = req.params.id;
+  const allowed = isAdmin(req, res);
+  if (!allowed) return;
   try {
     // Fix: Use { _id: roomId } and capture the result
     const result = await Room.findOneAndUpdate(
@@ -111,23 +85,13 @@ export async function updateRoom(req, res) {
 
 export async function deleteRoom(req, res) {
   const roomId = req.params.id;
-  const user = req.user;
-
-  // 1. Authentication & Authorization
-  if (!user) {
-    return res
-      .status(401)
-      .json({ message: "You must be logged in to delete a room" });
-  }
-  if (user.type !== "admin") {
-    return res
-      .status(403)
-      .json({ message: "You must be an admin to delete a room" });
-  }
+  
+  const allowed = isAdmin(req, res);
+  if (!allowed) return;
 
   try {
     // 2. Correct query filter (use _id instead of roomId)
-    const deletedRoom = await Room.findOneAndDelete({ _id: roomId });
+    const deletedRoom = await Room.findOneAndDelete({ roomId: roomId });
 
     if (!deletedRoom) {
       return res.status(404).json({ message: "Room not found" });
