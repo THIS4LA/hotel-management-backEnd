@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const galleryItemSchema = mongoose.Schema({
+const galleryItemSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
