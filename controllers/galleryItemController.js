@@ -1,5 +1,5 @@
 import GalleryItem from "../models/galleryItem.js";
-import { isAdmin } from "../utils/uservalidation.js";
+import { isAdmin } from "../utils/userValidation.js";
 
 export function getGalleryItems(req, res) {
   GalleryItem.find().then((galleryItems) => {

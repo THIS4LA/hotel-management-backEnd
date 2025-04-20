@@ -1,5 +1,5 @@
 import Room from "../models/room.js";
-import { isAdmin } from "../utils/uservalidation.js";
+import { isAdmin } from "../utils/userValidation.js";
 
 export async function getAllRooms(req, res) {
   try {
