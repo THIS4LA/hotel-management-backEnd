@@ -60,6 +60,6 @@ app.use("/api/galleryItems", galleryItemRouter);
 app.use("/api/rooms", roomRouter);
 app.use("/api/book", bookingRouter);
 
-app.listen(5000, (req, res) => {
+app.listen(5001, (req, res) => {
   console.log("Server is running on port 5000");
 });
