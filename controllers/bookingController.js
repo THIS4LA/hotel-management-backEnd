@@ -29,3 +29,27 @@ export async function createBooking(req, res) {
     return res.status(500).json({ message: "Failed to create room" });
   }
 }
+
+export async function getBookings(req, res) {
+    const allowed = isLogged(req, res);
+    if (!allowed) return;
+  
+    try {
+      let bookings = [];
+  
+      if (req.user.type == "admin") {
+        bookings = await Booking.find();
+      } else {
+        bookings = await Booking.find({ email: req.user.email });
+      }
+  
+      res.status(200).json({
+        success: true,
+        bookings: bookings,
+      });
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+  }
+  
