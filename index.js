@@ -3,6 +3,7 @@ import bodyParser from "body-parser";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
+import cors from "cors";
 
 import userRouter from "./routes/usersRoute.js";
 import galleryItemRouter from "./routes/galleryItemRoute.js";
@@ -12,6 +13,8 @@ import bookingRouter from "./routes/bookingRoute.js";
 dotenv.config();
 
 const app = express();
+
+app.use(cors());
 
 app.use(bodyParser.json());
 
@@ -23,13 +26,12 @@ app.use((req, res, next) => {
   if (token != null) {
     jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
       if (decoded != null) {
-        req.user = decoded;
+        req.body.user = decoded;
         console.log(decoded);
         next();
       }
     });
-  }
-  else {
+  } else {
     next();
   }
 });
