@@ -92,11 +92,24 @@ export async function loginUser(req, res) {
     res.status(200).json({
       message: "User authenticated successfully",
       userId: user._id,
+      type: user.type,
       token: token,
     });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Internal server error during login" });
+  }
+}
+
+export function getUser(req, res) {
+  const user = req.body.user;
+  if (user == null) {
+    return res.status(404).json({ message: "User not found" });
+  } else {
+    res.status(200).json({
+      message: "User found",
+      user: user,
+    });
   }
 }
 
