@@ -1,5 +1,5 @@
 import Booking from "../models/booking.js";
-import { isLogged } from "../utils/userValidation.js";
+import { isLogged } from "../utils/validation.js";
 
 export async function createBooking(req, res) {
   const allowed = isLogged(req, res);
