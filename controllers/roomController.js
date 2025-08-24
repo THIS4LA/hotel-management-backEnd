@@ -1,57 +1,94 @@
 import Room from "../models/room.js";
 import { isAdmin } from "../utils/validation.js";
+import { v4 as uuidv4 } from "uuid";
 
-export async function getAllRooms(req, res) {
+export async function getRooms(req, res) {
+  const {
+    page = 1,
+    limit = 10,
+    sortBy = "roomId",
+    order = "asc",
+    startPrice,
+    endPrice,
+  } = req.query;
+
+  const filter = {};
+
+  if (startPrice && endPrice) {
+    filter.price = {};
+    if (startPrice) filter.price.$gte = parseFloat(startPrice);
+    if (endPrice) filter.price.$lte = parseFloat(endPrice);
+  }
+
+  const parsedLimit = parseInt(limit) || 10;
+  const parsedPage = parseInt(page) || 1;
+
+  const options = {
+    page: parsedPage,
+    limit: parsedLimit,
+    sort: { [sortBy]: order === "desc" ? -1 : 1 },
+  };
+
   try {
-    const rooms = await Room.find(); // Wait for the query to complete
-    res.status(200).json({ roomlist: rooms }); // Send the response
+    const result = await Room.paginate(filter, options);
+
+    return res.status(200).json({
+      success: true,
+      rooms: result.docs,
+      totalPages: result.totalPages,
+      currentPage: result.page,
+    });
+
   } catch (error) {
     console.error("Error fetching rooms:", error);
-    res.status(500).json({ message: "Failed to fetch rooms" }); // Handle errors
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch bookings" });
   }
 }
 
 export async function postRoom(req, res) {
-  const allowed = isAdmin(req, res);
-  if (!allowed) return;
+  // const allowed = isAdmin(req, res);
+  // if (!allowed) return;
 
   try {
+    const count = await Room.countDocuments();
+    req.body.roomId = `BKG-${uuidv4()}`;
     const newRoom = new Room(req.body);
     await newRoom.save();
 
-    // Success response (avoid sending full room data for security)
     return res.status(201).json({
       message: "Room created successfully",
-      roomId: newRoom._id, // Only send necessary data
+      roomId: newRoom._id,
     });
   } catch (error) {
     console.error("Room creation error:", error);
 
-    // Handle duplicate key errors (e.g., unique room names)
+
     if (error.code === 11000) {
       return res.status(409).json({ message: "Room already exists" });
     }
 
-    // Handle validation errors (e.g., missing required fields)
+
     if (error.name === "ValidationError") {
       return res.status(400).json({ message: error.message });
     }
 
-    // Generic server error
+
     return res.status(500).json({ message: "Failed to create room" });
   }
 }
 
 export async function updateRoom(req, res) {
   const roomId = req.params.id;
-  const allowed = isAdmin(req, res);
-  if (!allowed) return;
+  // const allowed = isAdmin(req, res);
+  // if (!allowed) return;
   try {
-    // Fix: Use { _id: roomId } and capture the result
+
     const result = await Room.findOneAndUpdate(
-      { roomId: roomId }, // Correct query filter
+      { roomId: roomId },
       req.body,
-      { new: true, runValidators: true } // Added runValidators
+      { new: true, runValidators: true }
     );
 
     if (!result) {
@@ -59,12 +96,12 @@ export async function updateRoom(req, res) {
     }
 
     return res.status(200).json({
-      // Use 200 (not 201) for updates
+
       message: "Room updated successfully",
-      result: result, // Minimal response
+      result: result,
     });
   } catch (error) {
-    console.error("Room update error:", error); // Fixed log message
+    console.error("Room update error:", error);
 
     if (error.code === 11000) {
       return res.status(409).json({ message: "Room name already exists" });
@@ -75,7 +112,7 @@ export async function updateRoom(req, res) {
     }
 
     if (error.name === "CastError") {
-      // Handle invalid ObjectId
+
       return res.status(400).json({ message: "Invalid room ID format" });
     }
 
@@ -83,29 +120,57 @@ export async function updateRoom(req, res) {
   }
 }
 
+// export async function deleteRoom(req, res) {
+//   const roomId = req.params.id;
+
+//   const allowed = isAdmin(req, res);
+//   if (!allowed) return;
+
+//   try {
+//     // 2. Correct query filter (use _id instead of roomId)
+//     const deletedRoom = await Room.findOneAndDelete({ roomId: roomId });
+
+//     if (!deletedRoom) {
+//       return res.status(404).json({ message: "Room not found" });
+//     }
+
+//     // 3. Success response (avoid sending full document)
+//     return res.status(200).json({
+//       message: "Room deleted successfully",
+//       deletedRoomId: deletedRoom._id, // Only send the ID
+//     });
+//   } catch (error) {
+//     console.error("Room deletion error:", error);
+
+//     // 4. Handle specific errors
+//     if (error.name === "CastError") {
+//       return res.status(400).json({ message: "Invalid room ID format" });
+//     }
+
+//     return res.status(500).json({ message: "Failed to delete room" });
+//   }
+// }
+
 export async function deleteRoom(req, res) {
   const roomId = req.params.id;
-  
-  const allowed = isAdmin(req, res);
-  if (!allowed) return;
 
   try {
-    // 2. Correct query filter (use _id instead of roomId)
+
     const deletedRoom = await Room.findOneAndDelete({ roomId: roomId });
 
     if (!deletedRoom) {
       return res.status(404).json({ message: "Room not found" });
     }
 
-    // 3. Success response (avoid sending full document)
+
     return res.status(200).json({
       message: "Room deleted successfully",
-      deletedRoomId: deletedRoom._id, // Only send the ID
+      deletedRoomId: deletedRoom._id,
     });
   } catch (error) {
     console.error("Room deletion error:", error);
 
-    // 4. Handle specific errors
+
     if (error.name === "CastError") {
       return res.status(400).json({ message: "Invalid room ID format" });
     }

@@ -3,12 +3,37 @@ import User from "../models/user.js";
 import dotenv from "dotenv";
 import argon2 from "argon2";
 
-export function getUsers(req, res) {
-  User.find().then((users) => {
-    res.status(200).json({
-      userList: users,
+export async function getUsers(req, res) {
+  const {
+    page = 1,
+    limit = 10,
+    sortBy = "firstName",
+    order = "asc",
+  } = req.query;
+
+  const parsedLimit = parseInt(limit) || 10;
+  const parsedPage = parseInt(page) || 1;
+
+  const options = {
+    page: parsedPage,
+    limit: parsedLimit,
+    sort: { [sortBy]: order === "desc" ? -1 : 1 },
+  };
+  try {
+    const result = await User.paginate({},options);
+
+    return res.status(200).json({
+      success: true,
+      users: result.docs,
+      totalPages: result.totalPages,
+      currentPage: result.page,
     });
-  });
+  } catch (error) {
+    console.error("Error fetching bookings:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch users" });
+  }
 }
 
 export async function postUsers(req, res) {
@@ -46,10 +71,20 @@ export async function postUsers(req, res) {
   }
 }
 
-export function putUsers(req, res) {
-  res.json({
-    message: "put request",
-  });
+export function disableUser(req, res) {
+  const userId = req.params.id;
+  const updatedData = req.body.disabled;
+  User.findByIdAndUpdate(userId, { disabled: updatedData }, { new: true }).then(
+    (updatedUser) => {
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.status(200).json({
+        message: "User updated successfully",
+        user: updatedUser,
+      });
+    }
+  );
 }
 
 export function deleteUsers(req, res) {
