@@ -1,14 +1,14 @@
 import Booking from "../models/booking.js";
+import Room from "../models/room.js";
 import { v4 as uuidv4 } from "uuid";
-import { isLogged } from "../utils/validation.js";
 
 export async function createBooking(req, res) {
   // const allowed = isLogged(req, res);
   // if (!allowed) return;
 
   try {
-    const count = await Booking.countDocuments();
-    req.body.bookingId = `BKG-${uuidv4()}`;
+    console.log("Request body:", req.body);
+    req.body.bookingId = `BKG-${uuidv4().slice(0, 8)}`;
 
     const booking = new Booking(req.body);
     await booking.save();
@@ -18,13 +18,39 @@ export async function createBooking(req, res) {
   } catch (error) {
     console.error("booking creation error:", error);
 
-    // Handle validation errors (e.g., missing required fields)
     if (error.name === "ValidationError") {
       return res.status(400).json({ message: error.message });
     }
 
-    // Generic server error
     return res.status(500).json({ message: "Failed to create room" });
+  }
+}
+
+export async function getAvailableRooms(req, res) {
+  try {
+    const { startDate, endDate, currentBookingId } = req.query;
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({ message: "startDate and endDate are required" });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const overlappingBookings = await Booking.find({
+      bookingId: { $ne: currentBookingId }, // ignore the current booking being edited
+      $or: [{ startDate: { $lte: endDate }, endDate: { $gte: startDate } }],
+    }).select("rooms");
+    console.log("Overlapping bookings:", overlappingBookings);
+    const bookedRoomIds = overlappingBookings.flatMap((b) => b.rooms);
+    console.log("Booked room IDs:", bookedRoomIds);
+    const availableRooms = await Room.find({
+      _id: { $nin: bookedRoomIds },
+    }).select("roomName category price features capacity");
+    console.log("Available rooms:", availableRooms);
+    res.status(200).json({ availableRooms });
+  } catch (error) {
+    console.error("Error fetching available rooms:", error);
   }
 }
 
@@ -51,20 +77,50 @@ export async function createBooking(req, res) {
 // }
 
 export async function getBookings(req, res) {
-  let bookings = [];
-  const sortBy = req.query.sortBy || "startDate";
-  const order = req.query.order === "desc" ? -1 : 1;
-  bookings = await Booking.find().sort({ [sortBy]: order });
+  const {
+    page = 1,
+    limit = 10,
+    sortBy = "startDate",
+    order = "asc",
+    startDate,
+    endDate,
+  } = req.query;
 
-  res.status(200).json({ success: true, bookings });
-}
+  const filter = {};
 
-export async function getBookingsByDate(req, res) {
-  const { startDate, endDate } = req.query;
-  let bookings = [];
-  bookings = await Booking.find({startDate: { $gte: new Date(startDate) }, endDate: { $lte: new Date(endDate) } });
+  if (startDate && endDate) {
+    filter.startDate = { $gte: new Date(startDate) };
+    filter.endDate = { $lte: new Date(endDate) };
+  }
 
-  res.status(200).json({ success: true, bookings });
+  const parsedLimit = parseInt(limit) || 10;
+  const parsedPage = parseInt(page) || 1;
+
+  const options = {
+    page: parsedPage,
+    limit: parsedLimit,
+    sort: { [sortBy]: order === "desc" ? -1 : 1 },
+    populate: {
+      path: "rooms",
+      select: "roomName category price", // only fetch needed fields
+    },
+  };
+
+  try {
+    const result = await Booking.paginate(filter, options);
+
+    return res.status(200).json({
+      success: true,
+      bookings: result.docs,
+      totalPages: result.totalPages,
+      currentPage: result.page,
+    });
+  } catch (error) {
+    console.error("Error fetching bookings:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch bookings" });
+  }
 }
 
 export function deleteBooking(req, res) {
@@ -83,9 +139,9 @@ export async function updateBooking(req, res) {
 
   try {
     const updatedBooking = await Booking.findOneAndUpdate(
-      { bookingId: id }, // Query: find booking by bookingId
-      req.body, // Data to update
-      { new: true } // Option: return the updated document
+      { bookingId: id },
+      req.body,
+      { new: true }
     );
 
     if (!updatedBooking) {
