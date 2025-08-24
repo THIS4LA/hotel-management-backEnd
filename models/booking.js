@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 
 const bookingSchema = new mongoose.Schema({
   bookingId: {
@@ -6,11 +7,18 @@ const bookingSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
-  roomId: {
+  rooms: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Room",
+      required: true,
+    },
+  ],
+  email: {
     type: String,
     required: true,
   },
-  email: {
+  name: {
     type: String,
     required: true,
   },
@@ -37,5 +45,6 @@ const bookingSchema = new mongoose.Schema({
   },
 });
 
+bookingSchema.plugin(mongoosePaginate);
 const Booking = mongoose.model("Booking", bookingSchema);
 export default Booking;
