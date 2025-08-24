@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 
 const roomSchema = new mongoose.Schema(
   {
@@ -43,5 +44,6 @@ const roomSchema = new mongoose.Schema(
   }
 );
 
+roomSchema.plugin(mongoosePaginate);
 const Room = mongoose.model("Room", roomSchema);
 export default Room;
