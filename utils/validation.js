@@ -1,10 +1,7 @@
-export function isLogged(req, res) {
-  const user = req.user;
-  if (!user) {
-    return res.status(401).json({ message: "Please Login" });
-  }
-  return true;
+export function isLogged(req) {
+  return !!req.user;
 }
+
 
 export function isAdmin(req, res) {
   const user = req.user;
