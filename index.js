@@ -27,7 +27,6 @@ app.use((req, res, next) => {
     jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
       if (decoded != null) {
         req.body.user = decoded;
-        console.log(decoded);
         next();
       }
     });
@@ -44,18 +43,6 @@ mongoose
   .catch(() => {
     console.log("failed to connect to MongoDB");
   });
-
-// async function connectDB(){
-//     try{
-//         await mongoose.connect(connectionString);
-//         console.log('Connected to MongoDB');
-//     }
-//     catch(err){
-//         console.log('Error connecting to MongoDB');
-//     }
-// }
-
-// connectDB();
 
 app.use("/api/users", userRouter);
 app.use("/api/galleryItems", galleryItemRouter);
