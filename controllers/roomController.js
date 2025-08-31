@@ -38,12 +38,42 @@ export async function getRooms(req, res) {
       totalPages: result.totalPages,
       currentPage: result.page,
     });
-
   } catch (error) {
     console.error("Error fetching rooms:", error);
     return res
       .status(500)
       .json({ success: false, message: "Failed to fetch bookings" });
+  }
+}
+
+export async function getRoomById(req, res) {
+  const roomId = req.params.id; // same as /api/rooms/:id
+
+  try {
+    const room = await Room.findOne({ roomId: roomId });
+
+    if (!room) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Room not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      room,
+    });
+  } catch (error) {
+    console.error("Error fetching room by ID:", error);
+
+    if (error.name === "CastError") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid room ID format" });
+    }
+
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch room" });
   }
 }
 
@@ -64,16 +94,13 @@ export async function postRoom(req, res) {
   } catch (error) {
     console.error("Room creation error:", error);
 
-
     if (error.code === 11000) {
       return res.status(409).json({ message: "Room already exists" });
     }
 
-
     if (error.name === "ValidationError") {
       return res.status(400).json({ message: error.message });
     }
-
 
     return res.status(500).json({ message: "Failed to create room" });
   }
@@ -84,19 +111,16 @@ export async function updateRoom(req, res) {
   // const allowed = isAdmin(req, res);
   // if (!allowed) return;
   try {
-
-    const result = await Room.findOneAndUpdate(
-      { roomId: roomId },
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const result = await Room.findOneAndUpdate({ roomId: roomId }, req.body, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!result) {
       return res.status(404).json({ message: "Room not found" });
     }
 
     return res.status(200).json({
-
       message: "Room updated successfully",
       result: result,
     });
@@ -112,7 +136,6 @@ export async function updateRoom(req, res) {
     }
 
     if (error.name === "CastError") {
-
       return res.status(400).json({ message: "Invalid room ID format" });
     }
 
@@ -155,13 +178,11 @@ export async function deleteRoom(req, res) {
   const roomId = req.params.id;
 
   try {
-
     const deletedRoom = await Room.findOneAndDelete({ roomId: roomId });
 
     if (!deletedRoom) {
       return res.status(404).json({ message: "Room not found" });
     }
-
 
     return res.status(200).json({
       message: "Room deleted successfully",
@@ -169,7 +190,6 @@ export async function deleteRoom(req, res) {
     });
   } catch (error) {
     console.error("Room deletion error:", error);
-
 
     if (error.name === "CastError") {
       return res.status(400).json({ message: "Invalid room ID format" });
