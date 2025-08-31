@@ -20,7 +20,7 @@ export async function getUsers(req, res) {
     sort: { [sortBy]: order === "desc" ? -1 : 1 },
   };
   try {
-    const result = await User.paginate({},options);
+    const result = await User.paginate({}, options);
 
     return res.status(200).json({
       success: true,
@@ -39,7 +39,14 @@ export async function getUsers(req, res) {
 export async function postUsers(req, res) {
   try {
     const user = req.body;
+    const { email } = user;
 
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ message: "User already exists with this email" });
+    }
     // Hash the password
     const hashPassword = await argon2.hash(user.password);
     user.password = hashPassword;
@@ -51,7 +58,6 @@ export async function postUsers(req, res) {
     // Respond with success (avoid sending back sensitive data)
     res.status(201).json({
       message: "User created successfully",
-      userId: newUser._id, // Optional: Return the user ID if needed
     });
   } catch (error) {
     console.error("Error creating user:", error);
@@ -70,6 +76,53 @@ export async function postUsers(req, res) {
     res.status(500).json({ message: "Failed to create user" });
   }
 }
+
+export async function findUserById(req, res) {
+  try {
+    const { id } = req.body.user;
+
+    if (!id) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    const user = await User.findById(id).select("-password"); // exclude password
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({ user });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Server Error", error: error.message });
+  }
+}
+
+export const updateUserById = async (req, res) => {
+  try {
+    const { id } = req.params; // user ID from URL
+    const updates = req.body; // fields to update
+
+    // Find user and update
+    const updatedUser = await User.findByIdAndUpdate(id, updates, {
+      new: true, // return updated doc
+      runValidators: true, // validate before saving
+    });
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      message: "User updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error updating user", error: error.message });
+  }
+};
 
 export function disableUser(req, res) {
   const userId = req.params.id;
@@ -126,9 +179,12 @@ export async function loginUser(req, res) {
 
     res.status(200).json({
       message: "User authenticated successfully",
-      userId: user._id,
-      type: user.type,
       token: token,
+      user:{
+        id: user.id,
+        email: user.email,
+        type: user.type
+      }
     });
   } catch (error) {
     console.error("Login error:", error);
