@@ -31,6 +31,10 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  guests: {
+    type: String,
+    default: "",
+  },
   startDate: {
     type: Date,
     required: true,
