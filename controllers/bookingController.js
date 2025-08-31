@@ -37,20 +37,29 @@ export async function getAvailableRooms(req, res) {
 
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const overlappingBookings = await Booking.find({
-      bookingId: { $ne: currentBookingId }, // ignore the current booking being edited
-      $or: [{ startDate: { $lte: endDate }, endDate: { $gte: startDate } }],
-    }).select("rooms");
-    console.log("Overlapping bookings:", overlappingBookings);
+
+    // Base filter for overlapping bookings
+    const filter = {
+      $or: [{ startDate: { $lte: end }, endDate: { $gte: start } }],
+    };
+
+    // If currentBookingId exists, exclude it
+    if (currentBookingId) {
+      filter.bookingId = { $ne: currentBookingId };
+    }
+
+    const overlappingBookings = await Booking.find(filter).select("rooms");
+
     const bookedRoomIds = overlappingBookings.flatMap((b) => b.rooms);
-    console.log("Booked room IDs:", bookedRoomIds);
+
     const availableRooms = await Room.find({
       _id: { $nin: bookedRoomIds },
-    }).select("roomName category price features capacity");
-    console.log("Available rooms:", availableRooms);
+    }).select("roomId roomName category price features capacity image");
+
     res.status(200).json({ availableRooms });
   } catch (error) {
     console.error("Error fetching available rooms:", error);
+    res.status(500).json({ message: "Failed to fetch available rooms" });
   }
 }
 
@@ -120,6 +129,35 @@ export async function getBookings(req, res) {
     return res
       .status(500)
       .json({ success: false, message: "Failed to fetch bookings" });
+  }
+}
+
+export async function getBookingsByEmail(req, res) {
+  try {
+    const email = req.params.email;
+
+    const bookings = await Booking.find({ email: email }).populate({
+      path: "rooms",
+      select: "roomName", // only fetch needed fields
+    });
+
+    if (!bookings) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      bookings,
+    });
+  } catch (error) {
+    console.error("Error fetching booking:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch bookings",
+    });
   }
 }
 
